@@ -13,3 +13,4 @@ export async function callGemini(prompt) {
   }
   return { intent: 'unknown', message: 'No specific edit detected', confidence: 0.4 }
 }
+
