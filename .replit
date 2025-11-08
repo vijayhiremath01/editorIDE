@@ -55,10 +55,6 @@ exposeLocalhost = true
 localPort = 5000
 externalPort = 80
 
-[[ports]]
-localPort = 38499
-externalPort = 3000
-
 [deployment]
 deploymentTarget = "vm"
 run = ["bash", "-c", "cd backend/node && npm start & cd frontend && npm run dev"]

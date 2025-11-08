@@ -5,10 +5,10 @@ const axios = require('axios');
 const PY_LLM_BASE_URL = process.env.PY_LLM_BASE_URL || '';
 
 // Initialize Gemini AI
-if (!process.env.GEMINI_API_KEY) {
-  console.warn('GEMINI_API_KEY is not set; AI features will not work.');
+if (!process.env.GOOGLE_API_KEY) {
+  console.warn('GOOGLE_API_KEY is not set; AI features will not work.');
 }
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 const MODEL_NAME = process.env.GEMINI_MODEL || "gemini-pro";
 const model = genAI.getGenerativeModel({ 
   model: MODEL_NAME,
@@ -428,7 +428,7 @@ router.post('/analyze', async (req, res) => {
 
 // Health/status route to verify Gemini connectivity without exposing secrets
 router.get('/status', async (req, res) => {
-  const hasKey = Boolean(process.env.GEMINI_API_KEY);
+  const hasKey = Boolean(process.env.GOOGLE_API_KEY);
   try {
     // Do not call the API if no key; just report status
     return res.json({ success: true, hasKey, model: MODEL_NAME });

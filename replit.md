@@ -139,7 +139,7 @@ Preferred communication style: Simple, everyday language.
 **Google Gemini**:
 - **Purpose**: Alternative LLM provider for command parsing and chat assistance via `@google/generative-ai` SDK.
 - **Model**: Defaults to `gemini-pro` with configurable temperature (0.4) for consistent edit command interpretation.
-- **Configuration**: Requires `GEMINI_API_KEY` environment variable.
+- **Configuration**: Requires `GOOGLE_API_KEY` environment variable.
 
 **TensorFlow + YAMNet**:
 - **Purpose**: Audio classification for automatic tagging (music, SFX, ambience, speech).
@@ -199,7 +199,7 @@ Preferred communication style: Simple, everyday language.
 ### Deployment Considerations
 
 **Environment Variables**:
-- `OPENAI_API_KEY`, `GEMINI_API_KEY`: LLM provider authentication
+- `OPENAI_API_KEY`, `GOOGLE_API_KEY`: LLM provider authentication
 - `MEDIA_FOLDER`: Watch directory for imports (default: `./media`)
 - `UPLOAD_DIR`, `TEMP_DIR`, `OUTPUT_DIR`: File organization paths
 - `FFMPEG_PATH`, `FFPROBE_PATH`: Custom FFmpeg binary locations

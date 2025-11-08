@@ -15,7 +15,7 @@ import google.generativeai as genai
 # Load .env if present
 load_dotenv()
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_API_KEY = os.getenv("GOOGLE_API_KEY")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-pro")
 
 app = FastAPI(title="Python LLM Service", version="1.0.0")
