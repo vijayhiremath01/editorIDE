@@ -1,12 +1,22 @@
 import axios from 'axios'
 
-const REPLIT_DEV_DOMAIN = typeof process !== 'undefined' && process.env?.REPLIT_DEV_DOMAIN
-const backendPort = 3001
-const backendURL = REPLIT_DEV_DOMAIN 
-  ? `https://${REPLIT_DEV_DOMAIN.split('-00-')[0]}-00-${REPLIT_DEV_DOMAIN.split('-00-')[1]}:${backendPort}`
-  : `http://localhost:${backendPort}`
+const getBackendURL = () => {
+  if (import.meta.env?.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL
+  }
+  
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname
+    if (hostname.includes('replit.dev')) {
+      const protocol = window.location.protocol
+      return `${protocol}//${hostname}:3001`
+    }
+  }
+  
+  return 'http://localhost:3001'
+}
 
-export const API_BASE_URL = import.meta.env?.VITE_API_URL || backendURL
+export const API_BASE_URL = getBackendURL()
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
