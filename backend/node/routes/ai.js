@@ -9,7 +9,7 @@ if (!process.env.GOOGLE_API_KEY) {
   console.warn('GOOGLE_API_KEY is not set; AI features will not work.');
 }
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
-const MODEL_NAME = process.env.GEMINI_MODEL || "gemini-pro";
+const MODEL_NAME = process.env.GEMINI_MODEL || "gemini-2.0-flash-exp";
 const model = genAI.getGenerativeModel({ 
   model: MODEL_NAME,
   generationConfig: {
