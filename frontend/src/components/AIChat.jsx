@@ -31,11 +31,12 @@ const AIChat = ({ messages, onSendMessage, onNewMessage }) => {
 
     try {
       const response = await aiAPI.chat(userMessage, {})
+      const assistantText = response.message ?? response.response ?? response.text ?? ''
       
       if (onNewMessage) {
         onNewMessage({ 
           role: 'assistant', 
-          content: response.message, 
+          content: assistantText, 
           timestamp: new Date() 
         })
       }

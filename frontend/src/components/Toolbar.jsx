@@ -49,7 +49,7 @@ const Toolbar = ({ selectedFile, onActionComplete, onChatMessage }) => {
           break
           
         case 'ai-cut':
-          response = await aiAPI.analyze(selectedFile.full_path, 'rough_cut')
+          response = await aiAPI.analyze(selectedFile.fullPath, 'rough_cut')
           onChatMessage('assistant', 'Building rough cut with AI scene detection...')
           break
           
@@ -75,7 +75,7 @@ const Toolbar = ({ selectedFile, onActionComplete, onChatMessage }) => {
           return
           
         case 'classify-sfx':
-          response = await aiAPI.analyze(selectedFile.full_path, 'classify_sfx')
+          response = await aiAPI.analyze(selectedFile.fullPath, 'classify_sfx')
           onChatMessage('assistant', 'Classifying audio files...')
           break
           

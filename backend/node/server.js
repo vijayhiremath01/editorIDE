@@ -44,8 +44,11 @@ app.use(cors({
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Serve media statically for preview
-app.use('/media', express.static(path.join(__dirname, 'media')));
+// Serve media statically for preview with caching
+app.use('/media', express.static(path.join(__dirname, 'media'), {
+  maxAge: '1h',
+  etag: true,
+}));
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({

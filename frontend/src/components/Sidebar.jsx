@@ -41,7 +41,7 @@ const MediaFileItem = ({ file, onSelect, selectedFile, onDelete }) => {
     }
   }
 
-  const isSelected = selectedFile?.full_path === file.full_path
+  const isSelected = selectedFile?.fullPath === file.fullPath
 
   return (
     <div
@@ -112,10 +112,10 @@ const Sidebar = ({ files, onFileSelect, selectedFile, onFilesUpdate }) => {
     if (!confirm(`Delete ${file.name}?`)) return
     
     try {
-      await mediaAPI.deleteFile(file.path)
+      await mediaAPI.delete(file.fullPath)
       onFilesUpdate()
     } catch (error) {
-      alert(`Error deleting file: ${error.detail || error.message}`)
+      alert(`Error deleting file: ${error.response?.data?.error || error.detail || error.message}`)
     }
   }
 

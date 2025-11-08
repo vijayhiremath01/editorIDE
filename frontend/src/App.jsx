@@ -7,7 +7,7 @@ import Timeline from './components/Timeline/Timeline'
 import Toolbar from './components/Toolbar'
 import RightSidebar from './components/RightSidebar'
 import { api } from './api/client'
-import { videoAPI, audioAPI, aiAPI, mediaAPI } from './api/editing'
+import { videoAPI, audioAPI, aiAPI, mediaAPI, timelineAPI } from './api/editing'
 import { getWebSocketClient } from './utils/websocket'
 import useTimelineStore from './store/timelineStore'
 import { getFeatureInfo } from './assistant/knowledge/features'
@@ -25,7 +25,7 @@ function App() {
   ])
   const [activeTasks, setActiveTasks] = useState(new Set())
   
-  const { currentTime, setCurrentTime, timeline, setTimeline, projectId, setProjectId } = useTimelineStore()
+  const { currentTime, setCurrentTime, timeline, setTimeline, projectId, setProjectId, addClip } = useTimelineStore()
   const wsClient = getWebSocketClient()
 
   // Initialize WebSocket connection
@@ -37,9 +37,38 @@ function App() {
       console.log('WebSocket connected')
     })
     
-    const unsubscribeFileAdded = wsClient.on('file_added', (data) => {
-      loadMediaFiles()
+    const unsubscribeFileAdded = wsClient.on('file_added', async (data) => {
+      await loadMediaFiles()
       addChatMessage('assistant', `New file detected: ${data.path}`)
+      // Auto-add newly uploaded videos to the end of the first video track
+      try {
+        if (data?.type === 'video') {
+          const filesResp = await mediaAPI.list()
+          const files = filesResp.files || []
+          const match = files.find(f => f.name === data.name) || files.find(f => (f.path || '').endsWith(data.name))
+          if (match) {
+            let duration = 10
+            try {
+              const meta = await videoAPI.getMetadata(match.fullPath)
+              duration = (meta.metadata && meta.metadata.duration) || meta.duration || 10
+            } catch (_) {}
+            const videoTrack = (timeline?.tracks || []).find(t => t.type === 'video')
+            const startAt = Math.max(0, (timeline?.duration || 0))
+            if (videoTrack) {
+              addClip(videoTrack.id, {
+                id: `${match.name}-${Date.now()}`,
+                name: match.name,
+                start: startAt,
+                end: startAt + duration,
+                type: 'video',
+                fullPath: match.fullPath
+              })
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Auto-add to timeline failed:', e)
+      }
     })
     
     const unsubscribeTaskUpdate = wsClient.on('task_update', (data) => {

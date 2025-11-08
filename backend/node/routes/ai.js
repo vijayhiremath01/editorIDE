@@ -4,7 +4,10 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const axios = require('axios');
 
 // Initialize Gemini AI
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'your-api-key-here');
+if (!process.env.GEMINI_API_KEY) {
+  console.warn('GEMINI_API_KEY is not set; AI features will not work.');
+}
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
 // System prompt for video editing context
@@ -111,6 +114,20 @@ router.post('/parse-command', async (req, res) => {
     
   } catch (error) {
     console.error('AI command parsing error:', error);
+    const { message, filePath } = req.body || {};
+    const manualParse = message ? manualCommandParse(message, filePath) : null;
+
+    if (manualParse) {
+      return res.json({
+        success: true,
+        command: manualParse,
+        rawResponse: null,
+        fallback: true,
+        error: 'AI unavailable',
+        details: error.message
+      });
+    }
+
     res.status(500).json({ 
       error: 'Failed to parse command',
       details: error.message 
@@ -304,6 +321,7 @@ Respond helpfully about video editing, tools, and techniques. Keep responses con
     res.json({
       success: true,
       response: text,
+      message: text,
       timestamp: new Date().toISOString()
     });
     
