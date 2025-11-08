@@ -6,7 +6,7 @@ watchdog==3.0.0
 # tensorflow==2.15.0
 # tensorflow-hub==0.15.0
 scenedetect[opencv]==0.6.2
-opentimelineio==0.15.0
+# opentimelineio==0.15.0  # Skipping due to build issues
 ffmpeg-python==0.2.0
 openai>=1.3.5
 langchain>=0.0.350
