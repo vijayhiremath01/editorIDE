@@ -26,9 +26,9 @@ const VideoCanvas = ({ selectedFile, onTimeUpdate, currentTime }) => {
 
   const getFileUrl = (file) => {
     if (!file) return null
-    if (file.webPath) return `${API_BASE_URL}${file.webPath}`
+    if (file.webPath) return `${API_BASE_URL}${encodeURI(file.webPath)}`
     // Fallback to file-serving route by name
-    return `${API_BASE_URL}/api/media/file/${file.name}`
+    return `${API_BASE_URL}/api/media/file/${encodeURIComponent(file.name)}`
   }
 
   const handleProgress = (state) => {
@@ -101,19 +101,23 @@ const VideoCanvas = ({ selectedFile, onTimeUpdate, currentTime }) => {
             className="flex items-center justify-center"
           >
             <ReactPlayer
+              key={(selectedFile.fullPath || selectedFile.webPath || selectedFile.name)}
               ref={playerRef}
               url={getFileUrl(selectedFile)}
               playing={playing}
               controls
               width="100%"
               height="100%"
+              playsinline
               onProgress={handleProgress}
               onPlay={() => setPlaying(true)}
               onPause={() => setPlaying(false)}
+              onError={(e) => { console.error('Player error:', e) }}
               config={{
                 file: {
                   attributes: {
-                    controlsList: 'nodownload'
+                    controlsList: 'nodownload',
+                    crossOrigin: 'anonymous'
                   }
                 }
               }}
@@ -146,14 +150,25 @@ const VideoCanvas = ({ selectedFile, onTimeUpdate, currentTime }) => {
         ) : selectedFile && selectedFile.type === 'audio' ? (
           <div className="w-full max-w-md p-8">
             <ReactPlayer
+              key={(selectedFile.fullPath || selectedFile.webPath || selectedFile.name)}
               ref={playerRef}
               url={getFileUrl(selectedFile)}
               playing={playing}
               controls
               width="100%"
               height="54px"
+              playsinline
               onPlay={() => setPlaying(true)}
               onPause={() => setPlaying(false)}
+              onError={(e) => { console.error('Player error:', e) }}
+              config={{
+                file: {
+                  attributes: {
+                    controlsList: 'nodownload',
+                    crossOrigin: 'anonymous'
+                  }
+                }
+              }}
             />
             <div className="text-center mt-4">
               <p className="text-gray-300">{selectedFile.name}</p>

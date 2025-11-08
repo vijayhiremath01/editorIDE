@@ -44,7 +44,12 @@ app.use(cors({
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Serve media statically for preview with caching
+// Serve media statically for preview with caching and CORP header
+app.use('/media', (req, res, next) => {
+  // Allow media to be used across origins by the video element
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+});
 app.use('/media', express.static(path.join(__dirname, 'media'), {
   maxAge: '1h',
   etag: true,

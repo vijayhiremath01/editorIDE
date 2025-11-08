@@ -349,9 +349,14 @@ Keep responses to 1–4 short sentences unless the user asks for more detail.`;
     
   } catch (error) {
     console.error('AI chat error:', error);
-    res.status(500).json({ 
-      error: 'Failed to get AI response',
-      details: error.message 
+    const fallback = 'I’m having trouble reaching the AI service right now. You can still use toolbar actions (Split, Crop, Speed, Text). Try again in a moment.';
+    // Return 200 with a friendly fallback to avoid UI error popups
+    res.json({ 
+      success: true,
+      response: fallback,
+      message: fallback,
+      error: error.message,
+      timestamp: new Date().toISOString()
     });
   }
 });
