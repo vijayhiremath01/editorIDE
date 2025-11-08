@@ -21,21 +21,66 @@ const AIChat = ({ messages, onSendMessage, onNewMessage, chatContext }) => {
     if (!text || sending) return
     setSending(true)
     // Add user message immediately
-    if (onNewMessage) onNewMessage({ role: 'user', content: text, timestamp: new Date() })
+    onNewMessage && onNewMessage({ role: 'user', content: text, timestamp: new Date() })
+
+    // Try SSE streaming first
+    const supportsSSE = typeof window !== 'undefined' && 'EventSource' in window
+    if (supportsSSE) {
+      try {
+        const ctx = encodeURIComponent(JSON.stringify(chatContext || {}))
+        const url = `${location.origin.replace(/\/$/, '')}/api/ai/stream-chat?message=${encodeURIComponent(text)}&context=${ctx}`
+        let aggregated = ''
+        await new Promise((resolve, reject) => {
+          const es = new EventSource(url)
+          const onMessage = (ev) => {
+            try {
+              const data = JSON.parse(ev.data || '{}')
+              if (data.delta) {
+                aggregated += data.delta
+                // Render a local streaming bubble (not persisted in parent)
+                setStreamingText(aggregated)
+                setStreaming(true)
+              }
+            } catch (_) {}
+          }
+          const onDone = () => {
+            es.close()
+            setStreaming(false)
+            setStreamingText('')
+            onNewMessage && onNewMessage({ role: 'assistant', content: aggregated, timestamp: new Date() })
+            resolve()
+          }
+          const onError = (err) => {
+            es.close()
+            reject(err)
+          }
+          es.addEventListener('message', onMessage)
+          es.addEventListener('done', onDone)
+          es.onerror = onError
+        })
+        setSending(false)
+        return
+      } catch (_e) {
+        // fallback to non-streaming
+      }
+    }
+
+    // Fallback to non-streaming HTTP call
     try {
       const response = await aiAPI.chat(text, chatContext || {})
       const assistantText = response.message ?? response.response ?? response.text ?? ''
-      if (onNewMessage) onNewMessage({ role: 'assistant', content: assistantText, timestamp: new Date() })
-      if (response.commands) {
-        response.commands.forEach(cmd => onSendMessage && onSendMessage(cmd))
-      }
+      onNewMessage && onNewMessage({ role: 'assistant', content: assistantText, timestamp: new Date() })
+      if (response.commands) response.commands.forEach(cmd => onSendMessage && onSendMessage(cmd))
     } catch (error) {
       const errorMsg = error.response?.data?.error || error.detail || error.message || 'Unknown error'
-      if (onNewMessage) onNewMessage({ role: 'assistant', content: `Error: ${errorMsg}`, timestamp: new Date() })
+      onNewMessage && onNewMessage({ role: 'assistant', content: `Error: ${errorMsg}`, timestamp: new Date() })
     } finally {
       setSending(false)
     }
   }
+
+  const [streaming, setStreaming] = useState(false)
+  const [streamingText, setStreamingText] = useState('')
 
   const handleSend = async (e) => {
     e.preventDefault()
@@ -113,7 +158,14 @@ const AIChat = ({ messages, onSendMessage, onNewMessage, chatContext }) => {
             </div>
           </div>
         ))}
-        {sending && (
+        {streaming && (
+          <div className="flex justify-start">
+            <div className="bg-light-gray rounded-lg px-3 py-2">
+              <p className="text-sm whitespace-pre-wrap break-words">{streamingText || '...'}</p>
+            </div>
+          </div>
+        )}
+        {sending && !streaming && (
           <div className="flex justify-start">
             <div className="bg-light-gray rounded-lg px-3 py-2">
               <Loader className="w-4 h-4 animate-spin text-sky-blue" />

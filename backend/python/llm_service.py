@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
+from fastapi.responses import StreamingResponse
 
 import google.generativeai as genai
 
@@ -218,6 +219,37 @@ async def parse_command(req: ParseRequest):
                 "error": str(e),
             }
         return {"success": False, "error": str(e)}
+
+
+@app.get("/stream-chat")
+async def stream_chat(message: str, context: str = "{}"):
+    try:
+        try:
+            ctx = json.loads(context or "{}")
+        except Exception:
+            ctx = {}
+        prompt = f"{CHAT_SYSTEM_PROMPT}\n\nContext: {json.dumps(ctx)}\n\nUser: {message}\nAssistant:"
+
+        def iter_sse():
+            try:
+                resp = model.generate_content(prompt, stream=True)
+                for chunk in resp:
+                    text = getattr(chunk, 'text', '') or ''
+                    if text:
+                        yield f"data: {json.dumps({'delta': text})}\n\n"
+                yield "event: done\n"
+                yield "data: {}\n\n"
+            except Exception as e:
+                # graceful end
+                yield "event: done\n"
+                yield "data: {}\n\n"
+        return StreamingResponse(iter_sse(), media_type="text/event-stream", headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        })
+    except Exception:
+        return StreamingResponse((line for line in ["event: done\n", "data: {}\n\n"]), media_type="text/event-stream")
 
 
 if __name__ == "__main__":

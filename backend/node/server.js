@@ -7,6 +7,8 @@ const { v4: uuidv4 } = require('uuid');
 const http = require('http');
 const socketIo = require('socket.io');
 require('dotenv').config();
+const { spawn } = require('child_process');
+const axios = require('axios');
 
 const videoRoutes = require('./routes/video');
 const audioRoutes = require('./routes/audio');
@@ -24,6 +26,59 @@ const io = socketIo(server, {
 });
 
 const PORT = process.env.PORT || 3001;
+
+// Optionally autostart Python LLM service so only Node needs to be launched
+const PY_LLM_AUTOSTART = process.env.PY_LLM_AUTOSTART !== 'false';
+const DEFAULT_PY_LLM_BASE = 'http://127.0.0.1:8000';
+if (!process.env.PY_LLM_BASE_URL) {
+  process.env.PY_LLM_BASE_URL = DEFAULT_PY_LLM_BASE;
+}
+
+async function waitForService(url, timeoutMs = 15000) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    try {
+      await axios.get(url);
+      return true;
+    } catch (_) {
+      await new Promise(r => setTimeout(r, 500));
+    }
+  }
+  return false;
+}
+
+function startPythonLLM() {
+  if (!PY_LLM_AUTOSTART) {
+    console.log('PY_LLM_AUTOSTART disabled. Skipping Python LLM start.');
+    return null;
+  }
+  try {
+    const pythonCmd = process.env.PYTHON || (process.platform === 'win32' ? 'py' : 'python3');
+    const appDir = path.join(__dirname, '../python');
+    const args = ['-m', 'uvicorn', 'llm_service:app', '--app-dir', appDir, '--host', '127.0.0.1', '--port', '8000'];
+    console.log(`Starting Python LLM service with: ${pythonCmd} ${args.join(' ')}`);
+    const child = spawn(pythonCmd, args, {
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: { ...process.env, PYTHONUNBUFFERED: '1' },
+    });
+    child.stdout.on('data', (d) => process.stdout.write(`[py-llm] ${d}`));
+    child.stderr.on('data', (d) => process.stderr.write(`[py-llm] ${d}`));
+    child.on('error', (err) => {
+      console.warn('Failed to start Python LLM service:', err.message);
+    });
+    // Clean up on exit
+    const killChild = () => {
+      try { child.kill('SIGTERM'); } catch (_) {}
+    };
+    process.on('exit', killChild);
+    process.on('SIGINT', () => { killChild(); process.exit(0); });
+    process.on('SIGTERM', () => { killChild(); process.exit(0); });
+    return child;
+  } catch (e) {
+    console.warn('Error while starting Python LLM:', e.message);
+    return null;
+  }
+}
 
 // Create necessary directories
 const dirs = [
@@ -180,6 +235,17 @@ app.use((error, req, res, next) => {
 app.use('*', (req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
+
+// Autostart Python LLM and wait briefly (non-blocking)
+(async () => {
+  const child = startPythonLLM();
+  const ok = await waitForService(`${process.env.PY_LLM_BASE_URL}/status`);
+  if (ok) {
+    console.log(`🤖 Python LLM available at ${process.env.PY_LLM_BASE_URL}`);
+  } else {
+    console.warn('⚠️ Python LLM not available; Node will use built-in Gemini fallback.');
+  }
+})();
 
 server.listen(PORT, () => {
   console.log(`🚀 AI Video Editor Backend running on port ${PORT}`);

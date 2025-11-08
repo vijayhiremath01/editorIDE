@@ -437,4 +437,59 @@ router.get('/status', async (req, res) => {
   }
 });
 
+// Streaming chat via Server-Sent Events (SSE)
+router.get('/stream-chat', async (req, res) => {
+  try {
+    const message = req.query.message;
+    const contextRaw = req.query.context || '{}';
+    let context = {};
+    try { context = JSON.parse(contextRaw); } catch (_) {}
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    // If Python LLM service is configured, proxy its SSE
+    if (PY_LLM_BASE_URL) {
+      try {
+        const url = `${PY_LLM_BASE_URL}/stream-chat?message=${encodeURIComponent(message || '')}&context=${encodeURIComponent(JSON.stringify(context || {}))}`;
+        const response = await axios.get(url, { responseType: 'stream', timeout: 0 });
+        response.data.on('data', (chunk) => res.write(chunk));
+        response.data.on('end', () => res.end());
+        response.data.on('error', (err) => {
+          console.error('Python LLM stream error:', err.message);
+          try { res.end(); } catch (_) {}
+        });
+        return; // handled by proxy
+      } catch (e) {
+        console.warn('Falling back to Node streaming, Python stream failed:', e.message);
+      }
+    }
+
+    // Node+Gemini streaming fallback
+    const CHAT_SYSTEM_PROMPT = `You are an expert AI video editing assistant inside our app. Goals:\n- Be friendly for greetings (e.g., "hello how are you").\n- Give concrete, step-by-step guidance for edits users can do in this app.\n- Prefer our operations: split, crop, speed, volume, text, rotate, trim, fade.\n- Keep responses concise (1–4 short sentences).`;
+    const prompt = `${CHAT_SYSTEM_PROMPT}\n\nContext: ${JSON.stringify(context)}\n\nUser: ${message}\nAssistant:`;
+
+    const result = await model.generateContentStream(prompt);
+    for await (const chunk of result.stream) {
+      const delta = chunk.text();
+      if (delta) {
+        res.write(`data: ${JSON.stringify({ delta })}\n\n`);
+      }
+    }
+    // aggregated response is available if needed
+    res.write('event: done\n');
+    res.write('data: {}\n\n');
+    res.end();
+  } catch (error) {
+    console.error('SSE stream error:', error);
+    try {
+      res.write(`data: ${JSON.stringify({ delta: '' })}\n\n`);
+      res.write('event: done\n');
+      res.write('data: {}\n\n');
+    } catch (_) {}
+    try { res.end(); } catch (_) {}
+  }
+});
+
 module.exports = router;
