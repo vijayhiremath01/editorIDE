@@ -1,0 +1,8 @@
+#!/bin/bash
+
+# Create media folder if it doesn't exist
+mkdir -p ../media
+
+# Run the FastAPI server
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+

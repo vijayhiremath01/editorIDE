@@ -1,0 +1,68 @@
+{
+  "tracks": [
+    {
+      "id": "video-1",
+      "type": "video",
+      "clips": [],
+      "locked": false,
+      "muted": false
+    },
+    {
+      "id": "audio-2",
+      "type": "audio",
+      "clips": [],
+      "locked": false,
+      "muted": false
+    },
+    {
+      "id": "text-3",
+      "type": "text",
+      "clips": [
+        {
+          "id": "text-1762583017979",
+          "start": 0,
+          "end": 5,
+          "file": null,
+          "effects": [],
+          "volume": 1.0,
+          "content": "Double click to edit",
+          "font": {
+            "size": 24,
+            "family": "Arial",
+            "color": "#ffffff",
+            "weight": "bold"
+          },
+          "position": {
+            "x": 50.0,
+            "y": 50.0
+          },
+          "size": null
+        },
+        {
+          "id": "text-1762587026571",
+          "start": 1.771968,
+          "end": 6.771968,
+          "file": null,
+          "effects": [],
+          "volume": 1.0,
+          "content": "Double click to edit",
+          "font": {
+            "size": 24,
+            "family": "Arial",
+            "color": "#ffffff",
+            "weight": "bold"
+          },
+          "position": {
+            "x": 50.0,
+            "y": 50.0
+          },
+          "size": null
+        }
+      ],
+      "locked": false,
+      "muted": false
+    }
+  ],
+  "duration": 6.771968,
+  "fps": 30.0
+}
