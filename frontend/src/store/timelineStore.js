@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
+import { timelineAPI } from '../api/editing'
 
 const useTimelineStore = create(
   persist(
@@ -20,6 +21,10 @@ const useTimelineStore = create(
       scale: 100, // pixels per second
       snapGrid: 1, // seconds
       projectId: 'default',
+      
+      // Backend sync
+      isLoading: false,
+      error: null,
       
       // Actions
       setCurrentTime: (time) => set({ currentTime: time }),
@@ -75,6 +80,11 @@ const useTimelineStore = create(
               duration: maxEnd
             }
           }
+        })
+        
+        // Sync with backend asynchronously
+        this.syncAddClip(trackId, clip).catch(error => {
+          console.error('Failed to sync clip to backend:', error)
         })
       },
 
@@ -151,6 +161,11 @@ const useTimelineStore = create(
             }
           }
         })
+        
+        // Sync with backend asynchronously
+        this.syncUpdateClip(trackId, clipId, updates).catch(error => {
+          console.error('Failed to update clip in backend:', error)
+        })
       },
       
       removeClip: (trackId, clipId) => {
@@ -183,6 +198,11 @@ const useTimelineStore = create(
             },
             selectedClip: state.selectedClip?.id === clipId ? null : state.selectedClip
           }
+        })
+        
+        // Sync with backend asynchronously
+        this.syncRemoveClip(trackId, clipId).catch(error => {
+          console.error('Failed to remove clip from backend:', error)
         })
       },
 
@@ -230,6 +250,88 @@ const useTimelineStore = create(
       
       setProjectId: (projectId) => {
         set({ projectId })
+      },
+
+      // Backend sync methods
+      createProject: async (projectId) => {
+        set({ isLoading: true, error: null })
+        try {
+          const response = await timelineAPI.createProject(projectId)
+          set({ 
+            projectId,
+            timeline: response.timeline,
+            isLoading: false 
+          })
+          return response
+        } catch (error) {
+          set({ error: error.message, isLoading: false })
+          throw error
+        }
+      },
+
+      loadProject: async (projectId) => {
+        set({ isLoading: true, error: null })
+        try {
+          const response = await timelineAPI.getProject(projectId)
+          set({ 
+            projectId,
+            timeline: response.timeline,
+            currentTime: response.currentTime || 0,
+            isLoading: false 
+          })
+          return response
+        } catch (error) {
+          set({ error: error.message, isLoading: false })
+          throw error
+        }
+      },
+
+      syncAddClip: async (trackId, clip) => {
+        set({ isLoading: true, error: null })
+        try {
+          const response = await timelineAPI.addClip(get().projectId, trackId, clip)
+          set({ isLoading: false })
+          return response
+        } catch (error) {
+          set({ error: error.message, isLoading: false })
+          throw error
+        }
+      },
+
+      syncRemoveClip: async (trackId, clipId) => {
+        set({ isLoading: true, error: null })
+        try {
+          const response = await timelineAPI.removeClip(get().projectId, trackId, clipId)
+          set({ isLoading: false })
+          return response
+        } catch (error) {
+          set({ error: error.message, isLoading: false })
+          throw error
+        }
+      },
+
+      syncUpdateClip: async (trackId, clipId, updates) => {
+        set({ isLoading: true, error: null })
+        try {
+          const response = await timelineAPI.updateClip(get().projectId, trackId, clipId, updates)
+          set({ isLoading: false })
+          return response
+        } catch (error) {
+          set({ error: error.message, isLoading: false })
+          throw error
+        }
+      },
+
+      exportProject: async (format = 'mp4', quality = 'high') => {
+        set({ isLoading: true, error: null })
+        try {
+          const response = await timelineAPI.export(get().projectId, format, quality)
+          set({ isLoading: false })
+          return response
+        } catch (error) {
+          set({ error: error.message, isLoading: false })
+          throw error
+        }
       },
 
       // Split the currently selected clip at provided time

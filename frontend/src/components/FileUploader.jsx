@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { Upload, X, File } from 'lucide-react'
-import { api } from '../api/client'
+import { mediaAPI } from '../api/editing'
 
 const FileUploader = ({ onUpload, onClose }) => {
   const [dragActive, setDragActive] = useState(false)
@@ -42,19 +42,14 @@ const FileUploader = ({ onUpload, onClose }) => {
       const formData = new FormData()
       formData.append('file', file)
 
-      const response = await api.post('/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        onUploadProgress: (progressEvent) => {
-          const percentCompleted = Math.round(
-            (progressEvent.loaded * 100) / progressEvent.total
-          )
-          setProgress(percentCompleted)
-        },
+      const response = await mediaAPI.upload(formData, (progressEvent) => {
+        const percentCompleted = Math.round(
+          (progressEvent.loaded * 100) / progressEvent.total
+        )
+        setProgress(percentCompleted)
       })
 
-      if (response.data.success) {
+      if (response.success) {
         setProgress(100)
         setTimeout(() => {
           onUpload()

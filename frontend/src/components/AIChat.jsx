@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Send, Sparkles, Loader } from 'lucide-react'
-import { api } from '../api/client'
+import { aiAPI } from '../api/editing'
 
 const AIChat = ({ messages, onSendMessage, onNewMessage }) => {
   const [input, setInput] = useState('')
@@ -30,26 +30,26 @@ const AIChat = ({ messages, onSendMessage, onNewMessage }) => {
     }
 
     try {
-      const response = await api.post('/chat', { message: userMessage, context: {} })
+      const response = await aiAPI.chat(userMessage, {})
       
       if (onNewMessage) {
         onNewMessage({ 
           role: 'assistant', 
-          content: response.data.message, 
+          content: response.message, 
           timestamp: new Date() 
         })
       }
 
       // Check if response has commands
-      if (response.data.commands) {
-        response.data.commands.forEach(cmd => {
+      if (response.commands) {
+        response.commands.forEach(cmd => {
           if (onSendMessage) {
             onSendMessage(cmd)
           }
         })
       }
     } catch (error) {
-      const errorMsg = error.response?.data?.detail || error.message || 'Unknown error'
+      const errorMsg = error.detail || error.message || 'Unknown error'
       if (onNewMessage) {
         onNewMessage({ 
           role: 'assistant', 

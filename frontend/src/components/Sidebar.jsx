@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { File, Folder, Video, Music, Image, Trash2, Upload, ChevronRight, ChevronDown } from 'lucide-react'
 import { useDrag } from 'react-dnd'
-import { api } from '../api/client'
+import { mediaAPI } from '../api/editing'
 import FileUploader from './FileUploader'
 import { openFileDialog, isElectron } from '../utils/electron'
 
@@ -112,10 +112,10 @@ const Sidebar = ({ files, onFileSelect, selectedFile, onFilesUpdate }) => {
     if (!confirm(`Delete ${file.name}?`)) return
     
     try {
-      await api.delete(`/media/${file.path}`)
+      await mediaAPI.deleteFile(file.path)
       onFilesUpdate()
     } catch (error) {
-      alert(`Error deleting file: ${error.response?.data?.detail || error.message}`)
+      alert(`Error deleting file: ${error.detail || error.message}`)
     }
   }
 

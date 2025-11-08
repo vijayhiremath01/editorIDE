@@ -7,6 +7,7 @@ import Timeline from './components/Timeline/Timeline'
 import Toolbar from './components/Toolbar'
 import RightSidebar from './components/RightSidebar'
 import { api } from './api/client'
+import { videoAPI, audioAPI, aiAPI, mediaAPI } from './api/editing'
 import { getWebSocketClient } from './utils/websocket'
 import useTimelineStore from './store/timelineStore'
 import { getFeatureInfo } from './assistant/knowledge/features'
@@ -76,19 +77,17 @@ function App() {
   const initializeProject = async () => {
     try {
       const currentProjectId = projectId || 'default'
-      let response = await api.get(`/timeline/project/${currentProjectId}`)
+      let response = await timelineAPI.getProject(currentProjectId)
       
-      if (response.data.success) {
-        setTimeline(response.data.timeline)
+      if (response.timeline) {
+        setTimeline(response.timeline)
       }
     } catch (error) {
       // Project doesn't exist, create it
       try {
-        const response = await api.post('/timeline/create-project', {
-          project_id: projectId || 'default'
-        })
-        if (response.data.success) {
-          setTimeline(response.data.timeline)
+        const response = await timelineAPI.createProject(projectId || 'default')
+        if (response.timeline) {
+          setTimeline(response.timeline)
           setProjectId(projectId || 'default')
         }
       } catch (createError) {
@@ -99,8 +98,8 @@ function App() {
 
   const loadMediaFiles = useCallback(async () => {
     try {
-      const response = await api.get('/media/list')
-      setMediaFiles(response.data.files || [])
+      const response = await mediaAPI.list()
+      setMediaFiles(response.files || [])
     } catch (error) {
       console.error('Error loading media files:', error)
     }
@@ -138,11 +137,9 @@ function App() {
   const handleClassifySFX = async (filePath) => {
     try {
       addChatMessage('user', `Classify SFX: ${getFileName(filePath)}`)
-      const response = await api.post('/classify-sfx', { file_path: filePath })
-      if (response.data.task_id) {
-        setActiveTasks(prev => new Set([...prev, response.data.task_id]))
-      }
-      addChatMessage('assistant', 'Starting audio classification...')
+      // Use AI API for classification
+      const response = await aiAPI.analyze(filePath, 'sfx-classification')
+      addChatMessage('assistant', response.message || 'Audio classification completed!')
     } catch (error) {
       const errorMsg = error.response?.data?.detail || error.message || 'Unknown error'
       addChatMessage('assistant', `Error: ${errorMsg}`)
@@ -152,11 +149,9 @@ function App() {
   const handleAutoCaption = async (filePath) => {
     try {
       addChatMessage('user', `Auto Caption: ${getFileName(filePath)}`)
-      const response = await api.post('/auto-caption', { file_path: filePath })
-      if (response.data.task_id) {
-        setActiveTasks(prev => new Set([...prev, response.data.task_id]))
-      }
-      addChatMessage('assistant', 'Starting transcription...')
+      // Use AI API for transcription
+      const response = await aiAPI.analyze(filePath, 'transcription')
+      addChatMessage('assistant', response.message || 'Transcription completed!')
     } catch (error) {
       const errorMsg = error.response?.data?.detail || error.message || 'Unknown error'
       addChatMessage('assistant', `Error: ${errorMsg}`)
@@ -166,11 +161,9 @@ function App() {
   const handleBuildRoughCut = async (filePath) => {
     try {
       addChatMessage('user', `Build Rough Cut: ${getFileName(filePath)}`)
-      const response = await api.post('/build-roughcut', { file_path: filePath })
-      if (response.data.task_id) {
-        setActiveTasks(prev => new Set([...prev, response.data.task_id]))
-      }
-      addChatMessage('assistant', 'Starting rough cut generation...')
+      // Use AI API for rough cut generation
+      const response = await aiAPI.analyze(filePath, 'rough-cut')
+      addChatMessage('assistant', response.message || 'Rough cut generation completed!')
     } catch (error) {
       const errorMsg = error.response?.data?.detail || error.message || 'Unknown error'
       addChatMessage('assistant', `Error: ${errorMsg}`)
@@ -187,8 +180,8 @@ function App() {
       } else {
         // If not found yet, fetch again and then select
         try {
-          const response = await api.get('/media/list')
-          const files = response.data.files || []
+          const response = await mediaAPI.list()
+          const files = response.files || []
           setMediaFiles(files)
           const match = files.find(f => f.full_path === outputFullPath)
           if (match) setSelectedFile(match)
@@ -239,19 +232,20 @@ function App() {
       }).catch(() => {})
 
       addChatMessage('user', command)
-      const response = await api.post('/ai/execute-command', {
-        command: command,
-        context: { selected_file: filePath }
-      })
+      // Parse the command using AI API
+      const parsedCommand = await aiAPI.parseCommand(command, filePath)
       
-      if (response.data.success) {
-        if (response.data.task_id) {
-          setActiveTasks(prev => new Set([...prev, response.data.task_id]))
-          pollTaskStatus(response.data.task_id)
+      if (parsedCommand.success) {
+        // Execute the parsed command
+        const response = await aiAPI.executeCommand(parsedCommand.command)
+        addChatMessage('assistant', response.message || 'Done! Edit applied successfully.')
+        
+        // Reload media files if a new file was created
+        if (response.outputPath) {
+          await loadMediaFiles()
         }
-        addChatMessage('assistant', response.data.message || 'Done! Edit applied successfully.')
       } else {
-        addChatMessage('assistant', response.data.message || 'I could not apply that edit.')
+        addChatMessage('assistant', parsedCommand.message || 'I could not apply that edit.')
       }
     } catch (error) {
       const errorMsg = error.response?.data?.detail || error.message || 'Unknown error'
@@ -259,53 +253,7 @@ function App() {
     }
   }
 
-  const pollTaskStatus = async (taskId) => {
-    const maxAttempts = 60
-    let attempts = 0
-    
-    const poll = async () => {
-      try {
-        const response = await api.get(`/task/${taskId}`)
-        const task = response.data
-        
-        if (task.status === 'completed') {
-          addChatMessage('assistant', task.message || 'Task completed!')
-          loadMediaFiles()
-          setActiveTasks(prev => {
-            const newSet = new Set(prev)
-            newSet.delete(taskId)
-            return newSet
-          })
-        } else if (task.status === 'failed') {
-          addChatMessage('assistant', `Error: ${task.error || 'Task failed'}`)
-          setActiveTasks(prev => {
-            const newSet = new Set(prev)
-            newSet.delete(taskId)
-            return newSet
-          })
-        } else if (attempts < maxAttempts) {
-          attempts++
-          setTimeout(poll, 1000)
-        } else {
-          addChatMessage('assistant', 'Task is taking longer than expected...')
-          setActiveTasks(prev => {
-            const newSet = new Set(prev)
-            newSet.delete(taskId)
-            return newSet
-          })
-        }
-      } catch (error) {
-        addChatMessage('assistant', `Error checking task status: ${error.message}`)
-        setActiveTasks(prev => {
-          const newSet = new Set(prev)
-          newSet.delete(taskId)
-          return newSet
-        })
-      }
-    }
-    
-    poll()
-  }
+
 
 
   const handleSelectSuggestion = (suggestion) => {

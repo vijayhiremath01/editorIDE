@@ -2,7 +2,7 @@ import { useRef } from 'react'
 import { useDrop } from 'react-dnd'
 import Clip from './Clip'
 import useTimelineStore from '../../store/timelineStore'
-import { api } from '../../api/client'
+import { timelineAPI } from '../../api/editing'
 
 const Track = ({ track, scale, timelineRef, onTimelineClick, onClipDrop, currentTime }) => {
   const { updateClip, selectClip, selectedClip, moveClip, setCurrentTime, snapGrid, projectId, toggleTrackMute, toggleTrackHidden } = useTimelineStore()
@@ -35,16 +35,8 @@ const Track = ({ track, scale, timelineRef, onTimelineClick, onClipDrop, current
           // Move across tracks locally
           moveClip(item.id, item.trackId, track.id, newStart, newEnd)
           // Sync with backend: remove from old, add to new
-          api.post('/timeline/remove-clip', {
-            project_id: projectId || 'default',
-            track_id: item.trackId,
-            clip_id: item.id
-          })
-          .then(() => api.post('/timeline/add-clip', {
-            project_id: projectId || 'default',
-            track_id: track.id,
-            clip: { ...item, start: newStart, end: newEnd, trackId: track.id }
-          }))
+          timelineAPI.removeClip(projectId || 'default', item.trackId, item.id)
+          .then(() => timelineAPI.addClip(projectId || 'default', track.id, { ...item, start: newStart, end: newEnd, trackId: track.id }))
           .catch((err) => {
             console.error('Error syncing move across tracks:', err)
           })
@@ -52,12 +44,7 @@ const Track = ({ track, scale, timelineRef, onTimelineClick, onClipDrop, current
           // Reposition within same track
           updateClip(track.id, item.id, { start: newStart, end: newEnd })
           // Sync with backend update
-          api.post('/timeline/update-clip', {
-            project_id: projectId || 'default',
-            track_id: track.id,
-            clip_id: item.id,
-            updates: { start: newStart, end: newEnd }
-          })
+          timelineAPI.updateClip(projectId || 'default', track.id, item.id, { start: newStart, end: newEnd })
           .catch((err) => {
             console.error('Error syncing clip update:', err)
           })

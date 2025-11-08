@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import { useDrag } from 'react-dnd'
 import { motion } from 'framer-motion'
-import { api } from '../../api/client'
+import { timelineAPI } from '../../api/editing'
 import useTimelineStore from '../../store/timelineStore'
 
 const Clip = ({ clip, scale, trackType, trackId, onUpdate, isSelected, onSelect }) => {
@@ -62,12 +62,7 @@ const Clip = ({ clip, scale, trackType, trackId, onUpdate, isSelected, onSelect 
       
       // Sync with backend
       try {
-        await api.post('/timeline/update-clip', {
-          project_id: projectId,
-          track_id: trackId,
-          clip_id: clip.id,
-          updates: { start: clip.start, end: clip.end }
-        })
+        await timelineAPI.updateClip(projectId, trackId, clip.id, { start: clip.start, end: clip.end })
       } catch (error) {
         console.error('Error updating clip:', error)
       }

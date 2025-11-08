@@ -3,7 +3,7 @@ import { DndProvider } from 'react-dnd'
 import { HTML5Backend } from 'react-dnd-html5-backend'
 import Track from './Track'
 import useTimelineStore from '../../store/timelineStore'
-import { api } from '../../api/client'
+import { videoAPI, audioAPI, timelineAPI } from '../../api/editing'
 
 const Timeline = ({ onTimeUpdate, currentTime }) => {
   const timelineRef = useRef(null)
@@ -36,15 +36,29 @@ const Timeline = ({ onTimeUpdate, currentTime }) => {
     const time = position / scale
     const snappedTime = Math.round(time / snapGrid) * snapGrid
     
+    // Get video metadata to determine actual duration
+    let actualDuration = item.duration || 10
+    try {
+      if (item.type === 'video') {
+        const metadata = await videoAPI.getMetadata(item.full_path)
+        actualDuration = metadata.duration || 10
+      } else if (item.type === 'audio') {
+        const metadata = await audioAPI.getMetadata(item.full_path)
+        actualDuration = metadata.duration || 10
+      }
+    } catch (e) {
+      console.warn('Could not get metadata, using default duration:', e)
+    }
+    
     const newClip = {
       ...item,
       id: `${item.id}-${Date.now()}`,
       start: snappedTime,
-      end: snappedTime + (item.duration || 10),
+      end: snappedTime + actualDuration,
       trackId: trackId
     }
     
-    // Add to local timeline store so it renders immediately in blue with correct duration
+    // Add to local timeline store so it renders immediately
     addClip(trackId, newClip)
 
     // If dropping a video onto video track, also add a linked audio clip on the audio track
@@ -56,7 +70,7 @@ const Timeline = ({ onTimeUpdate, currentTime }) => {
           ...item,
           id: `${item.id}-audio-${Date.now()}`,
           start: snappedTime,
-          end: snappedTime + (item.duration || 10),
+          end: snappedTime + actualDuration,
           trackId: audioTrack.id,
           type: 'audio',
           name: `${item.name} (audio)`,
@@ -66,23 +80,15 @@ const Timeline = ({ onTimeUpdate, currentTime }) => {
         newClip.linkedId = audioClip.id
         addClip(audioTrack.id, audioClip)
         // Sync audio clip as well
-        await api.post('/timeline/add-clip', {
-          project_id: projectId || 'default',
-          track_id: audioTrack.id,
-          clip: audioClip
-        })
+        await timelineAPI.addClip(projectId || 'default', audioTrack.id, audioClip)
       }
     } catch (e) {
       console.error('Error adding linked audio clip:', e)
     }
     
-    // Optionally sync with backend timeline
+    // Sync with backend timeline
     try {
-      await api.post('/timeline/add-clip', {
-        project_id: projectId || 'default',
-        track_id: trackId,
-        clip: newClip
-      })
+      await timelineAPI.addClip(projectId || 'default', trackId, newClip)
     } catch (err) {
       console.error('Error syncing clip to backend:', err)
     }

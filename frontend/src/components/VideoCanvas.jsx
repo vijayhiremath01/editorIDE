@@ -3,7 +3,6 @@ import ReactPlayer from 'react-player'
 import { ZoomIn, ZoomOut, Play, Pause } from 'lucide-react'
 import TextOverlay from './TextOverlay'
 import useTimelineStore from '../store/timelineStore'
-import { api } from '../api/client'
 
 const VideoCanvas = ({ selectedFile, onTimeUpdate, currentTime }) => {
   const [zoomLevel, setZoomLevel] = useState(100)

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Sparkles, Image as ImageIcon, Video, Music } from 'lucide-react'
-import { api } from '../api/client'
+import { mediaAPI } from '../api/editing'
 
 const AISuggestions = ({ onSelectSuggestion }) => {
   const [suggestions, setSuggestions] = useState([])
@@ -14,8 +14,7 @@ const AISuggestions = ({ onSelectSuggestion }) => {
   const loadSuggestions = async () => {
     try {
       setLoading(true)
-      const response = await api.get('/media/list')
-      const files = response.data.files || []
+      const files = await mediaAPI.listFiles()
       
       // Show recent video/audio files as suggestions
       const recentFiles = files

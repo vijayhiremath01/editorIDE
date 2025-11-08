@@ -3,7 +3,7 @@ import {
   Volume2, Gauge, Sparkles, Crop, Eye, Copy, RotateCw, 
   RotateCcw, Trash2
 } from 'lucide-react'
-import { api } from '../api/client'
+import { videoAPI, audioAPI, aiAPI, timelineAPI, taskAPI } from '../api/editing'
 import { useState } from 'react'
 import useTimelineStore from '../store/timelineStore'
 
@@ -39,73 +39,47 @@ const Toolbar = ({ selectedFile, onActionComplete, onChatMessage }) => {
         }
           
         case 'speed':
-          response = await api.post('/speed', {
-            file_path: selectedFile.full_path,
-            speed: params.speed || 1.5
-          })
+          response = await videoAPI.adjustSpeed(selectedFile.full_path, params.speed || 1.5)
           onChatMessage('assistant', `Changing playback speed to ${params.speed}x...`)
           break
           
         case 'volume':
-          response = await api.post('/volume', {
-            file_path: selectedFile.full_path,
-            volume_db: params.volumeDb || 0
-          })
+          response = await audioAPI.adjustVolume(selectedFile.full_path, params.volumeDb || 0)
           onChatMessage('assistant', `Adjusting volume by ${params.volumeDb}dB...`)
           break
           
         case 'ai-cut':
-          response = await api.post('/build-roughcut', {
-            file_path: selectedFile.full_path
-          })
+          response = await aiAPI.analyze(selectedFile.full_path, 'rough_cut')
           onChatMessage('assistant', 'Building rough cut with AI scene detection...')
           break
           
         case 'crop':
-          response = await api.post('/apply-edit', {
-            file_path: selectedFile.full_path,
-            operation: 'crop',
-            parameters: {
-              x: params.x || 0,
-              y: params.y || 0,
-              width: params.width || 640,
-              height: params.height || 480
-            }
+          response = await videoAPI.crop(selectedFile.full_path, {
+            x: params.x || 0,
+            y: params.y || 0,
+            width: params.width || 640,
+            height: params.height || 480
           })
           onChatMessage('assistant', 'Cropping video...')
           break
           
         case 'rotate':
-          response = await api.post('/apply-edit', {
-            file_path: selectedFile.full_path,
-            operation: 'rotate',
-            parameters: {
-              angle: params.angle || 90
-            }
-          })
+          response = await videoAPI.rotate(selectedFile.full_path, params.angle || 90)
           onChatMessage('assistant', `Rotating video ${params.angle}°...`)
           break
           
         case 'reverse':
-          response = await api.post('/apply-edit', {
-            file_path: selectedFile.full_path,
-            operation: 'reverse',
-            parameters: {}
-          })
+          response = await videoAPI.reverse(selectedFile.full_path)
           onChatMessage('assistant', 'Reversing video...')
           break
           
         case 'classify-sfx':
-          response = await api.post('/classify-sfx', {
-            file_path: selectedFile.full_path
-          })
+          response = await aiAPI.analyze(selectedFile.full_path, 'classify_sfx')
           onChatMessage('assistant', 'Classifying audio files...')
           break
           
         case 'auto-caption':
-          response = await api.post('/auto-caption', {
-            file_path: selectedFile.full_path
-          })
+          response = await aiAPI.analyze(selectedFile.full_path, 'transcribe')
           onChatMessage('assistant', 'Generating captions...')
           break
           
@@ -135,8 +109,7 @@ const Toolbar = ({ selectedFile, onActionComplete, onChatMessage }) => {
     
     const poll = async () => {
       try {
-        const response = await api.get(`/task/${taskId}`)
-        const task = response.data
+        const task = await taskAPI.getStatus(taskId)
         
         if (task.status === 'completed') {
           onChatMessage('assistant', task.message || `${action} completed!`)
@@ -185,11 +158,7 @@ const Toolbar = ({ selectedFile, onActionComplete, onChatMessage }) => {
     
     // Sync with backend
     try {
-      await api.post('/timeline/add-clip', {
-        project_id: projectId || 'default',
-        track_id: textTrack.id,
-        clip: textClip
-      })
+      await timelineAPI.addClip(projectId || 'default', textTrack.id, textClip)
     } catch (err) {
       console.error('Error adding text clip:', err)
     }
@@ -215,18 +184,11 @@ const Toolbar = ({ selectedFile, onActionComplete, onChatMessage }) => {
         if (mode === 'add') {
           const volStr = prompt('Background audio volume (e.g., 1.0)', '1.0')
           const audio_volume = volStr ? parseFloat(volStr) : 1.0
-          const response = await api.post('/audio/add', {
-            video_file_path: selectedFile.full_path,
-            audio_file_path: audioPath,
-            audio_volume
-          })
-          if (response.data.task_id) pollTaskStatus(response.data.task_id, 'audio-add')
+          const response = await audioAPI.addAudio(selectedFile.full_path, audioPath, audio_volume)
+          if (response.task_id) pollTaskStatus(response.task_id, 'audio-add')
         } else {
-          const response = await api.post('/audio/replace', {
-            video_file_path: selectedFile.full_path,
-            audio_file_path: audioPath
-          })
-          if (response.data.task_id) pollTaskStatus(response.data.task_id, 'audio-replace')
+          const response = await audioAPI.replaceAudio(selectedFile.full_path, audioPath)
+          if (response.task_id) pollTaskStatus(response.task_id, 'audio-replace')
         }
       }
       input.click()
@@ -243,14 +205,8 @@ const Toolbar = ({ selectedFile, onActionComplete, onChatMessage }) => {
       const y = parseInt(prompt('Overlay Y position', '50') || '50', 10)
       const width = parseInt(prompt('Overlay width (optional)', '') || '0', 10)
       const height = parseInt(prompt('Overlay height (optional)', '') || '0', 10)
-      const response = await api.post('/pip', {
-        base_file_path: selectedFile.full_path,
-        overlay_file_path: overlayPath,
-        x, y,
-        width: width || undefined,
-        height: height || undefined
-      })
-      if (response.data.task_id) pollTaskStatus(response.data.task_id, 'pip')
+      const response = await videoAPI.addPiP(selectedFile.full_path, overlayPath, { x, y, width: width || undefined, height: height || undefined })
+      if (response.task_id) pollTaskStatus(response.task_id, 'pip')
     } },
     { id: 'split', icon: Scissors, label: 'Split', action: () => handleAction('split') },
     { id: 'delete', icon: Trash2, label: 'Delete', action: async () => {
@@ -261,11 +217,7 @@ const Toolbar = ({ selectedFile, onActionComplete, onChatMessage }) => {
       // Remove from store and backend
       removeClip(selectedTrack, selectedClip.id || selectedClip)
       try {
-        await api.post('/timeline/remove-clip', {
-          project_id: projectId || 'default',
-          track_id: selectedTrack,
-          clip_id: selectedClip.id || selectedClip
-        })
+        await timelineAPI.removeClip(projectId || 'default', selectedTrack, selectedClip.id || selectedClip)
       } catch (err) {
         console.error('Error syncing clip removal:', err)
       }
@@ -295,17 +247,14 @@ const Toolbar = ({ selectedFile, onActionComplete, onChatMessage }) => {
       if (!command) return
       try {
         setLoading('prompt-cut')
-        const response = await api.post('/ai/execute-command', {
-          command,
-          context: { selected_file: selectedFile.full_path }
-        })
-        onChatMessage('assistant', response.data.message || 'Executing command...')
-        if (response.data.task_id) {
-          pollTaskStatus(response.data.task_id, 'prompt-cut')
-        } else {
-          setLoading(null)
-          onActionComplete(response.data.result?.output_path)
-        }
+        const response = await aiAPI.executeCommand(command, { selected_file: selectedFile.full_path })
+      onChatMessage('assistant', response.message || 'Executing command...')
+      if (response.task_id) {
+        pollTaskStatus(response.task_id, 'prompt-cut')
+      } else {
+        setLoading(null)
+        onActionComplete(response.result?.output_path)
+      }
       } catch (err) {
         onChatMessage('assistant', `Error: ${err.response?.data?.detail || err.message}`)
         setLoading(null)
@@ -316,12 +265,12 @@ const Toolbar = ({ selectedFile, onActionComplete, onChatMessage }) => {
       const alphaStr = prompt('Opacity (0.0 transparent to 1.0 opaque):', '0.7')
       if (alphaStr === null) return
       const alpha = parseFloat(alphaStr)
-      const response = await api.post('/opacity', { file_path: selectedFile.full_path, alpha })
-      if (response.data.task_id) pollTaskStatus(response.data.task_id, 'opacity')
+      const response = await videoAPI.setOpacity(selectedFile.full_path, alpha)
+      if (response.task_id) pollTaskStatus(response.task_id, 'opacity')
     } },
     { id: 'duplicate', icon: Copy, label: 'Duplicate', action: async () => {
-      const response = await api.post('/duplicate', { file_path: selectedFile.full_path })
-      if (response.data.task_id) pollTaskStatus(response.data.task_id, 'duplicate')
+      const response = await videoAPI.duplicate(selectedFile.full_path)
+      if (response.task_id) pollTaskStatus(response.task_id, 'duplicate')
     } },
     { id: 'rotate', icon: RotateCw, label: 'Rotate', action: () => handleAction('rotate', { angle: 90 }) },
     { id: 'reverse', icon: RotateCcw, label: 'Reverse', action: () => handleAction('reverse') },
