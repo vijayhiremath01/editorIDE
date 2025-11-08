@@ -1,22 +1,6 @@
 import axios from 'axios'
 
-const getBackendURL = () => {
-  if (import.meta.env?.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL
-  }
-  
-  if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname
-    if (hostname.includes('replit.dev')) {
-      const protocol = window.location.protocol
-      return `${protocol}//${hostname}:3001`
-    }
-  }
-  
-  return 'http://localhost:3001'
-}
-
-export const API_BASE_URL = getBackendURL()
+export const API_BASE_URL = import.meta.env?.VITE_API_URL || '/api'
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
