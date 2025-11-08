@@ -35,5 +35,6 @@
     "video-processing"
   ],
   "author": "AI Video Copilot",
-  "license": "MIT"
+  "license": "MIT",
+  "type": "commonjs"
 }

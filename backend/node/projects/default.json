@@ -7,7 +7,26 @@
       "id": "video-1",
       "name": "Video 1",
       "type": "video",
-      "clips": []
+      "clips": [
+        {
+          "id": "a320091a-ee0c-47ca-b8c2-74d1f352cf65_HOW is CHATGPT destroying CHROME  ð¥ - ezExplains (144p, h264).mp4-1762624376545",
+          "name": "a320091a-ee0c-47ca-b8c2-74d1f352cf65_HOW is CHATGPT destroying CHROME  ð¥ - ezExplains (144p, h264).mp4",
+          "type": "video",
+          "start": 300,
+          "end": 1496.023583,
+          "duration": 1196.023583,
+          "fullPath": "media/uploads/a320091a-ee0c-47ca-b8c2-74d1f352cf65_HOW is CHATGPT destroying CHROME  ð¥ - ezExplains (144p, h264).mp4"
+        },
+        {
+          "id": "a320091a-ee0c-47ca-b8c2-74d1f352cf65_HOW is CHATGPT destroying CHROME  ð¥ - ezExplains (144p, h264).mp4-1762624376544",
+          "name": "a320091a-ee0c-47ca-b8c2-74d1f352cf65_HOW is CHATGPT destroying CHROME  ð¥ - ezExplains (144p, h264).mp4",
+          "type": "video",
+          "start": 0,
+          "end": 1196.023583,
+          "duration": 1196.023583,
+          "fullPath": "media/uploads/a320091a-ee0c-47ca-b8c2-74d1f352cf65_HOW is CHATGPT destroying CHROME  ð¥ - ezExplains (144p, h264).mp4"
+        }
+      ]
     },
     {
       "id": "audio-1",
@@ -19,9 +38,115 @@
       "id": "text-1",
       "name": "Text 1",
       "type": "text",
-      "clips": []
+      "clips": [
+        {
+          "id": "text-1762621277157",
+          "start": 8.881679,
+          "end": 13.881679,
+          "duration": 5,
+          "content": "Double click to edit",
+          "position": {
+            "x": 50,
+            "y": 50
+          },
+          "font": {
+            "size": 24,
+            "family": "Arial",
+            "color": "#ffffff",
+            "weight": "bold"
+          },
+          "modified": "2025-11-08T17:52:32.859Z"
+        },
+        {
+          "id": "text-1762621277157",
+          "start": 8.881679,
+          "end": 13.881679,
+          "duration": 5,
+          "content": "Double click to edit",
+          "position": {
+            "x": 50,
+            "y": 50
+          },
+          "font": {
+            "size": 24,
+            "family": "Arial",
+            "color": "#ffffff",
+            "weight": "bold"
+          }
+        },
+        {
+          "id": "text-1762624628527",
+          "start": 39.848173,
+          "end": 44.848173,
+          "duration": 5,
+          "content": "Double click to edit",
+          "position": {
+            "x": 50,
+            "y": 50
+          },
+          "font": {
+            "size": 24,
+            "family": "Arial",
+            "color": "#ffffff",
+            "weight": "bold"
+          },
+          "modified": "2025-11-08T17:58:42.356Z"
+        },
+        {
+          "id": "text-1762624628527",
+          "start": 39.848173,
+          "end": 44.848173,
+          "duration": 5,
+          "content": "Double click to edit",
+          "position": {
+            "x": 50,
+            "y": 50
+          },
+          "font": {
+            "size": 24,
+            "family": "Arial",
+            "color": "#ffffff",
+            "weight": "bold"
+          }
+        },
+        {
+          "id": "text-1762624631297",
+          "start": 41.850152,
+          "end": 46.850152,
+          "duration": 5,
+          "content": "Double click to edit",
+          "position": {
+            "x": 50,
+            "y": 50
+          },
+          "font": {
+            "size": 24,
+            "family": "Arial",
+            "color": "#ffffff",
+            "weight": "bold"
+          },
+          "modified": "2025-11-08T17:58:00.443Z"
+        },
+        {
+          "id": "text-1762624631297",
+          "start": 41.850152,
+          "end": 46.850152,
+          "duration": 5,
+          "content": "Double click to edit",
+          "position": {
+            "x": 50,
+            "y": 50
+          },
+          "font": {
+            "size": 24,
+            "family": "Arial",
+            "color": "#ffffff",
+            "weight": "bold"
+          }
+        }
+      ]
     }
   ],
   "created": "2025-11-08T16:30:53.221Z",
-  "modified": "2025-11-08T16:30:53.221Z"
+  "modified": "2025-11-08T17:58:42.356Z"
 }
