@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const axios = require('axios');
+const PY_LLM_BASE_URL = process.env.PY_LLM_BASE_URL || '';
 
 // Initialize Gemini AI
 if (!process.env.GEMINI_API_KEY) {
@@ -74,6 +75,17 @@ router.post('/parse-command', async (req, res) => {
     
     if (!message) {
       return res.status(400).json({ error: 'Message is required' });
+    }
+
+    // If Python LLM service is configured, proxy to it first
+    if (PY_LLM_BASE_URL) {
+      try {
+        const pyResp = await axios.post(`${PY_LLM_BASE_URL}/parse-command`, { message, filePath, context }, { timeout: 60000 });
+        return res.json(pyResp.data);
+      } catch (e) {
+        console.error('Python LLM parse-command proxy error:', e.message);
+        // fall through to Node Gemini as fallback
+      }
     }
 
     const prompt = `${SYSTEM_PROMPT}\n\nUser: "${message}"\nContext: ${JSON.stringify(context)}\n\nResponse:`;
@@ -313,6 +325,17 @@ router.post('/chat', async (req, res) => {
     
     if (!message) {
       return res.status(400).json({ error: 'Message is required' });
+    }
+
+    // If Python LLM service is configured, proxy to it
+    if (PY_LLM_BASE_URL) {
+      try {
+        const pyResp = await axios.post(`${PY_LLM_BASE_URL}/chat`, { message, context }, { timeout: 60000 });
+        return res.json(pyResp.data);
+      } catch (e) {
+        console.error('Python LLM chat proxy error:', e.message);
+        // fall through to Node Gemini as fallback
+      }
     }
 
     const CHAT_SYSTEM_PROMPT = `You are an expert AI video editing assistant inside our app. Goals:
