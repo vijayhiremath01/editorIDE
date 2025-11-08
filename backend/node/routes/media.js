@@ -21,18 +21,21 @@ router.get('/list', async (req, res) => {
     // Scan upload directory
     if (await fs.pathExists(uploadDir)) {
       const uploadFiles = await scanDirectory(uploadDir);
+      uploadFiles.forEach(f => f.webPath = `/media/uploads/${f.path.replace(/\\\\/g, '/')}`);
       mediaFiles.push(...uploadFiles);
     }
     
     // Scan temp directory
     if (await fs.pathExists(tempDir)) {
       const tempFiles = await scanDirectory(tempDir);
+      tempFiles.forEach(f => f.webPath = `/media/temp/${f.path.replace(/\\\\/g, '/')}`);
       mediaFiles.push(...tempFiles);
     }
     
     // Scan output directory
     if (await fs.pathExists(outputDir)) {
       const outputFiles = await scanDirectory(outputDir);
+      outputFiles.forEach(f => f.webPath = `/media/output/${f.path.replace(/\\\\/g, '/')}`);
       mediaFiles.push(...outputFiles);
     }
     

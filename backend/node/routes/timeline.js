@@ -4,8 +4,24 @@ const path = require('path');
 const fs = require('fs-extra');
 const { v4: uuidv4 } = require('uuid');
 
-// In-memory timeline storage (replace with database in production)
+// In-memory timeline storage (persisted to disk under backend/node/projects)
 const timelines = new Map();
+const projectsDir = process.env.PROJECTS_DIR || path.join(__dirname, '..', 'projects');
+fs.ensureDirSync(projectsDir);
+const projectPath = (id) => path.join(projectsDir, `${id}.json`);
+const loadProject = async (id) => {
+  const p = projectPath(id);
+  if (await fs.pathExists(p)) {
+    const data = await fs.readJson(p);
+    timelines.set(id, data);
+    return data;
+  }
+  return null;
+};
+const saveProject = async (id, data) => {
+  const p = projectPath(id);
+  await fs.writeJson(p, data, { spaces: 2 });
+};
 
 // Create or get timeline
 router.post('/create-project', async (req, res) => {
@@ -16,34 +32,28 @@ router.post('/create-project', async (req, res) => {
       return res.status(400).json({ error: 'Project ID is required' });
     }
     
-    const timeline = {
-      id: project_id,
-      name: `Project ${project_id}`,
-      duration: 300, // 5 minutes default
-      tracks: [
-        {
-          id: 'video-1',
-          name: 'Video 1',
-          type: 'video',
-          clips: []
-        },
-        {
-          id: 'audio-1',
-          name: 'Audio 1',
-          type: 'audio',
-          clips: []
-        }
-      ],
-      created: new Date().toISOString(),
-      modified: new Date().toISOString()
-    };
+    // Load existing project if present
+    let timeline = timelines.get(project_id) || await loadProject(project_id);
+    
+    if (!timeline) {
+      timeline = {
+        id: project_id,
+        name: `Project ${project_id}`,
+        duration: 300, // 5 minutes default
+        tracks: [
+          { id: 'video-1', name: 'Video 1', type: 'video', clips: [] },
+          { id: 'audio-1', name: 'Audio 1', type: 'audio', clips: [] },
+          { id: 'text-1', name: 'Text 1', type: 'text', clips: [] }
+        ],
+        created: new Date().toISOString(),
+        modified: new Date().toISOString()
+      };
+    }
     
     timelines.set(project_id, timeline);
+    await saveProject(project_id, timeline);
     
-    res.json({
-      success: true,
-      timeline
-    });
+    res.json({ success: true, timeline });
     
   } catch (error) {
     console.error('Create project error:', error);
@@ -59,16 +69,16 @@ router.get('/project/:project_id', async (req, res) => {
   try {
     const { project_id } = req.params;
     
-    const timeline = timelines.get(project_id);
+    let timeline = timelines.get(project_id);
+    if (!timeline) {
+      timeline = await loadProject(project_id);
+    }
     
     if (!timeline) {
       return res.status(404).json({ error: 'Project not found' });
     }
     
-    res.json({
-      success: true,
-      timeline
-    });
+    res.json({ success: true, timeline });
     
   } catch (error) {
     console.error('Get project error:', error);
@@ -114,17 +124,12 @@ router.post('/add-clip', async (req, res) => {
     });
     
     timeline.modified = new Date().toISOString();
+    await saveProject(project_id, timeline);
     
     // Emit timeline update
-    req.app.get('io').emit('timeline_updated', {
-      project_id,
-      timeline
-    });
+    req.app.get('io').emit('timeline_updated', { project_id, timeline });
     
-    res.json({
-      success: true,
-      timeline
-    });
+    res.json({ success: true, timeline });
     
   } catch (error) {
     console.error('Add clip error:', error);
@@ -160,17 +165,12 @@ router.post('/remove-clip', async (req, res) => {
     track.clips = track.clips.filter(clip => clip.id !== clip_id);
     
     timeline.modified = new Date().toISOString();
+    await saveProject(project_id, timeline);
     
     // Emit timeline update
-    req.app.get('io').emit('timeline_updated', {
-      project_id,
-      timeline
-    });
+    req.app.get('io').emit('timeline_updated', { project_id, timeline });
     
-    res.json({
-      success: true,
-      timeline
-    });
+    res.json({ success: true, timeline });
     
   } catch (error) {
     console.error('Remove clip error:', error);
@@ -216,17 +216,12 @@ router.post('/update-clip', async (req, res) => {
     };
     
     timeline.modified = new Date().toISOString();
+    await saveProject(project_id, timeline);
     
     // Emit timeline update
-    req.app.get('io').emit('timeline_updated', {
-      project_id,
-      timeline
-    });
+    req.app.get('io').emit('timeline_updated', { project_id, timeline });
     
-    res.json({
-      success: true,
-      timeline
-    });
+    res.json({ success: true, timeline });
     
   } catch (error) {
     console.error('Update clip error:', error);

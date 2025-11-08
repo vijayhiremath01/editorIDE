@@ -194,15 +194,13 @@ export const mediaAPI = {
     return response.data
   },
 
-  // Upload file
-  async upload(file) {
+  // Upload file with progress callback
+  async upload(file, onProgress) {
     const formData = new FormData()
     formData.append('file', file)
-    
     const response = await api.post('/api/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
+      headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress: onProgress
     })
     return response.data
   }

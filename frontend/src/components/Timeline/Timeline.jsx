@@ -40,11 +40,11 @@ const Timeline = ({ onTimeUpdate, currentTime }) => {
     let actualDuration = item.duration || 10
     try {
       if (item.type === 'video') {
-        const metadata = await videoAPI.getMetadata(item.full_path)
-        actualDuration = metadata.duration || 10
+        const metadata = await videoAPI.getMetadata(item.fullPath)
+        actualDuration = (metadata.metadata && metadata.metadata.duration) || metadata.duration || 10
       } else if (item.type === 'audio') {
-        const metadata = await audioAPI.getMetadata(item.full_path)
-        actualDuration = metadata.duration || 10
+        const metadata = await audioAPI.getMetadata(item.fullPath)
+        actualDuration = (metadata.metadata && metadata.metadata.duration) || metadata.duration || 10
       }
     } catch (e) {
       console.warn('Could not get metadata, using default duration:', e)

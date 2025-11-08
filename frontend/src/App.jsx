@@ -129,7 +129,7 @@ function App() {
       )
       
       if (isCommand) {
-        await handleAICommand(message.content, selectedFile.full_path)
+        await handleAICommand(message.content, selectedFile.fullPath)
       }
     }
   }
@@ -174,7 +174,7 @@ function App() {
     await loadMediaFiles()
     if (outputFullPath) {
       // Try to select the new output file in media list
-      const found = mediaFiles.find(f => f.full_path === outputFullPath)
+      const found = mediaFiles.find(f => f.fullPath === outputFullPath)
       if (found) {
         setSelectedFile(found)
       } else {
@@ -183,7 +183,7 @@ function App() {
           const response = await mediaAPI.list()
           const files = response.files || []
           setMediaFiles(files)
-          const match = files.find(f => f.full_path === outputFullPath)
+          const match = files.find(f => f.fullPath === outputFullPath)
           if (match) setSelectedFile(match)
         } catch (e) {
           console.warn('Could not select output file automatically:', e)
@@ -200,18 +200,18 @@ function App() {
 
     switch (action) {
       case 'classify-sfx':
-        handleClassifySFX(selectedFile.full_path)
+        handleClassifySFX(selectedFile.fullPath)
         break
       case 'auto-caption':
-        handleAutoCaption(selectedFile.full_path)
+        handleAutoCaption(selectedFile.fullPath)
         break
       case 'build-roughcut':
-        handleBuildRoughCut(selectedFile.full_path)
+        handleBuildRoughCut(selectedFile.fullPath)
         break
       default:
         // Try to execute as AI command
         if (selectedFile) {
-          await handleAICommand(action, selectedFile.full_path)
+          await handleAICommand(action, selectedFile.fullPath)
         }
     }
   }

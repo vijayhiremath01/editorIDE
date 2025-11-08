@@ -3,6 +3,7 @@ import ReactPlayer from 'react-player'
 import { ZoomIn, ZoomOut, Play, Pause } from 'lucide-react'
 import TextOverlay from './TextOverlay'
 import useTimelineStore from '../store/timelineStore'
+import { API_BASE_URL } from '../api/client'
 
 const VideoCanvas = ({ selectedFile, onTimeUpdate, currentTime }) => {
   const [zoomLevel, setZoomLevel] = useState(100)
@@ -25,7 +26,9 @@ const VideoCanvas = ({ selectedFile, onTimeUpdate, currentTime }) => {
 
   const getFileUrl = (file) => {
     if (!file) return null
-    return `/api/media/${file.path}`
+    if (file.webPath) return `${API_BASE_URL}${file.webPath}`
+    // Fallback to file-serving route by name
+    return `${API_BASE_URL}/api/media/file/${file.name}`
   }
 
   const handleProgress = (state) => {

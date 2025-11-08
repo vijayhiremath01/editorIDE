@@ -83,7 +83,7 @@ const useTimelineStore = create(
         })
         
         // Sync with backend asynchronously
-        this.syncAddClip(trackId, clip).catch(error => {
+        get().syncAddClip(trackId, clip).catch(error => {
           console.error('Failed to sync clip to backend:', error)
         })
       },
@@ -163,7 +163,7 @@ const useTimelineStore = create(
         })
         
         // Sync with backend asynchronously
-        this.syncUpdateClip(trackId, clipId, updates).catch(error => {
+        get().syncUpdateClip(trackId, clipId, updates).catch(error => {
           console.error('Failed to update clip in backend:', error)
         })
       },
@@ -201,7 +201,7 @@ const useTimelineStore = create(
         })
         
         // Sync with backend asynchronously
-        this.syncRemoveClip(trackId, clipId).catch(error => {
+        get().syncRemoveClip(trackId, clipId).catch(error => {
           console.error('Failed to remove clip from backend:', error)
         })
       },

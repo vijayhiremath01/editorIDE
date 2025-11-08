@@ -42,9 +42,9 @@ const FileUploader = ({ onUpload, onClose }) => {
       const formData = new FormData()
       formData.append('file', file)
 
-      const response = await mediaAPI.upload(formData, (progressEvent) => {
+      const response = await mediaAPI.upload(file, (progressEvent) => {
         const percentCompleted = Math.round(
-          (progressEvent.loaded * 100) / progressEvent.total
+          (progressEvent.loaded * 100) / (progressEvent.total || 1)
         )
         setProgress(percentCompleted)
       })
