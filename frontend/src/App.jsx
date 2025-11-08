@@ -330,6 +330,14 @@ function App() {
           onSendMessage={handleChatAction}
           onNewMessage={handleNewChatMessage}
           onSelectSuggestion={handleSelectSuggestion}
+          chatContext={{
+            selectedFile: selectedFile ? { name: selectedFile.name, fullPath: selectedFile.fullPath, type: selectedFile.type } : null,
+            currentTime,
+            timeline: {
+              duration: timeline?.duration || 0,
+              tracks: (timeline?.tracks || []).map(t => ({ id: t.id, type: t.type, clipCount: (t.clips || []).length }))
+            }
+          }}
         />
       </div>
     </DndProvider>

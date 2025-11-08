@@ -8,7 +8,15 @@ if (!process.env.GEMINI_API_KEY) {
   console.warn('GEMINI_API_KEY is not set; AI features will not work.');
 }
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+const MODEL_NAME = process.env.GEMINI_MODEL || "gemini-pro";
+const model = genAI.getGenerativeModel({ 
+  model: MODEL_NAME,
+  generationConfig: {
+    temperature: 0.4,
+    topK: 40,
+    topP: 0.9,
+  }
+});
 
 // System prompt for video editing context
 const SYSTEM_PROMPT = `You are an AI video editing assistant that translates natural language commands into structured editing operations. 
@@ -307,14 +315,28 @@ router.post('/chat', async (req, res) => {
       return res.status(400).json({ error: 'Message is required' });
     }
 
-    const videoContext = `
-You are an AI video editing assistant. The user is working with video editing software.
-Current context: ${JSON.stringify(context)}
+    const CHAT_SYSTEM_PROMPT = `You are an expert AI video editing assistant inside our app. Goals:
+- Be friendly for greetings (e.g., "hello how are you") with a short, warm reply.
+- Give concrete, step-by-step guidance for edits users can do in this app.
+- Prefer our available operations and UI terms.
+- When a user seems to ask for an edit (cut, trim, crop, speed, volume, text, rotate, fade), suggest the exact button or command and what to expect.
 
-Respond helpfully about video editing, tools, and techniques. Keep responses concise and actionable.
-`;
+Supported operations and hints:
+- split: cut clip at a time
+- crop: set x,y,width,height
+- speed: 0.5x–2.0x
+- volume: +/- dB
+- text: overlay with position and size
+- rotate: degrees
+- trim: start/end
+- fade: fadeIn/fadeOut
 
-    const result = await model.generateContent(videoContext + message);
+If user input is casual or not an edit, respond with a helpful, concise message and one or two suggestions of what they can try in the app.
+Keep responses to 1–4 short sentences unless the user asks for more detail.`;
+
+    const prompt = `${CHAT_SYSTEM_PROMPT}\n\nContext: ${JSON.stringify(context)}\n\nUser: ${message}\nAssistant:`;
+
+    const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
     
@@ -373,6 +395,17 @@ router.post('/analyze', async (req, res) => {
       error: 'Failed to analyze video',
       details: error.message 
     });
+  }
+});
+
+// Health/status route to verify Gemini connectivity without exposing secrets
+router.get('/status', async (req, res) => {
+  const hasKey = Boolean(process.env.GEMINI_API_KEY);
+  try {
+    // Do not call the API if no key; just report status
+    return res.json({ success: true, hasKey, model: MODEL_NAME });
+  } catch (e) {
+    return res.json({ success: false, hasKey, model: MODEL_NAME, error: e.message });
   }
 });
 

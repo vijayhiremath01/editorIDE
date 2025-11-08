@@ -2,9 +2,10 @@ import { useState, useRef, useEffect } from 'react'
 import { Send, Sparkles, Loader } from 'lucide-react'
 import { aiAPI } from '../api/editing'
 
-const AIChat = ({ messages, onSendMessage, onNewMessage }) => {
+const AIChat = ({ messages, onSendMessage, onNewMessage, chatContext }) => {
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
+  const [suggesting, setSuggesting] = useState(false)
   const chatEndRef = useRef(null)
   const messagesContainerRef = useRef(null)
 
@@ -16,51 +17,52 @@ const AIChat = ({ messages, onSendMessage, onNewMessage }) => {
     scrollToBottom()
   }, [messages])
 
-  const handleSend = async (e) => {
-    e.preventDefault()
-    if (!input.trim() || sending) return 
-
-    const userMessage = input.trim()
-    setInput('')
+  const sendChat = async (text) => {
+    if (!text || sending) return
     setSending(true)
-
     // Add user message immediately
-    if (onNewMessage) {
-      onNewMessage({ role: 'user', content: userMessage, timestamp: new Date() })
-    }
-
+    if (onNewMessage) onNewMessage({ role: 'user', content: text, timestamp: new Date() })
     try {
-      const response = await aiAPI.chat(userMessage, {})
+      const response = await aiAPI.chat(text, chatContext || {})
       const assistantText = response.message ?? response.response ?? response.text ?? ''
-      
-      if (onNewMessage) {
-        onNewMessage({ 
-          role: 'assistant', 
-          content: assistantText, 
-          timestamp: new Date() 
-        })
-      }
-
-      // Check if response has commands
+      if (onNewMessage) onNewMessage({ role: 'assistant', content: assistantText, timestamp: new Date() })
       if (response.commands) {
-        response.commands.forEach(cmd => {
-          if (onSendMessage) {
-            onSendMessage(cmd)
-          }
-        })
+        response.commands.forEach(cmd => onSendMessage && onSendMessage(cmd))
       }
     } catch (error) {
-      const errorMsg = error.detail || error.message || 'Unknown error'
-      if (onNewMessage) {
-        onNewMessage({ 
-          role: 'assistant', 
-          content: `Error: ${errorMsg}`, 
-          timestamp: new Date() 
-        })
-      }
+      const errorMsg = error.response?.data?.error || error.detail || error.message || 'Unknown error'
+      if (onNewMessage) onNewMessage({ role: 'assistant', content: `Error: ${errorMsg}`, timestamp: new Date() })
     } finally {
       setSending(false)
     }
+  }
+
+  const handleSend = async (e) => {
+    e.preventDefault()
+    const userMessage = input.trim()
+    if (!userMessage) return
+    setInput('')
+    await sendChat(userMessage)
+  }
+
+  const quickPrompts = [
+    'Hello, how are you?',
+    'How do I split at 5 seconds?',
+    'Trim the first 3 seconds',
+    'Add text "Intro" at 5 seconds',
+    'Suggest background music for an upbeat montage'
+  ]
+
+  const handleSuggest = async () => {
+    if (suggesting) return
+    setSuggesting(true)
+    const ctx = chatContext || {}
+    const filePart = ctx?.selectedFile ? `The current file is ${ctx.selectedFile.name} (${ctx.selectedFile.type}).` : 'No file is selected.'
+    const timePart = typeof ctx?.currentTime === 'number' ? `The playhead is at ${ctx.currentTime.toFixed(2)} seconds.` : ''
+    const tlPart = ctx?.timeline ? `There are ${ctx.timeline.tracks?.length || 0} tracks and duration is ${ctx.timeline.duration || 0} seconds.` : ''
+    const prompt = `Given this context, suggest one concrete next edit (split, trim, crop, speed, volume, text, rotate, fade) with a short explanation I can follow in this app. ${filePart} ${timePart} ${tlPart}`
+    await sendChat(prompt)
+    setSuggesting(false)
   }
 
   return (
@@ -77,6 +79,19 @@ const AIChat = ({ messages, onSendMessage, onNewMessage }) => {
         className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0"
         style={{ scrollBehavior: 'smooth' }}
       >
+        {/* Quick prompts */}
+        <div className="flex flex-wrap gap-2 mb-2">
+          {quickPrompts.map((qp, idx) => (
+            <button
+              key={idx}
+              className="px-2 py-1 text-xs bg-light-gray hover:bg-gray-500 rounded"
+              onClick={() => sendChat(qp)}
+              disabled={sending}
+            >
+              {qp}
+            </button>
+          ))}
+        </div>
         {messages.map((message, index) => (
           <div
             key={index}
@@ -111,6 +126,19 @@ const AIChat = ({ messages, onSendMessage, onNewMessage }) => {
       {/* Input Bar */}
       <form onSubmit={handleSend} className="p-4 border-t border-light-gray">
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleSuggest}
+            disabled={sending || suggesting}
+            className="p-2 bg-light-gray hover:bg-gray-500 rounded disabled:opacity-50"
+            title="Suggest next edit"
+          >
+            {suggesting ? (
+              <Loader className="w-4 h-4 animate-spin text-sky-blue" />
+            ) : (
+              <Sparkles className="w-4 h-4 text-sky-blue" />
+            )}
+          </button>
           <input
             type="text"
             value={input}

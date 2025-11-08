@@ -14,11 +14,12 @@ const AISuggestions = ({ onSelectSuggestion }) => {
   const loadSuggestions = async () => {
     try {
       setLoading(true)
-      const files = await mediaAPI.listFiles()
+      const resp = await mediaAPI.list()
+      const files = resp.files || []
       
-      // Show recent video/audio files as suggestions
+      // Show recent video/audio/image files as suggestions (up to 6)
       const recentFiles = files
-        .filter(f => f.type === 'video' || f.type === 'audio' || f.type === 'image')
+        .filter(f => ['video', 'audio', 'image'].includes(f.type))
         .slice(0, 6)
       
       setSuggestions(recentFiles)
@@ -78,9 +79,10 @@ const AISuggestions = ({ onSelectSuggestion }) => {
                 <div className="aspect-video bg-charcoal rounded mb-2 flex items-center justify-center">
                   {suggestion.type === 'image' ? (
                     <img
-                      src={`/api/media/${suggestion.path}`}
+                      src={suggestion.webPath || `/media/uploads/${suggestion.path}`}
                       alt={suggestion.name}
                       className="w-full h-full object-cover rounded"
+                      onError={(e) => { e.currentTarget.style.display = 'none' }}
                     />
                   ) : (
                     getFileIcon(suggestion.type)
