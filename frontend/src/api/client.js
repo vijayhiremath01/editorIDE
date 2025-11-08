@@ -1,7 +1,12 @@
 import axios from 'axios'
 
-// Switch to Node.js backend on port 3001
-export const API_BASE_URL = import.meta.env?.VITE_API_URL || 'http://localhost:3001'
+const REPLIT_DEV_DOMAIN = typeof process !== 'undefined' && process.env?.REPLIT_DEV_DOMAIN
+const backendPort = 3001
+const backendURL = REPLIT_DEV_DOMAIN 
+  ? `https://${REPLIT_DEV_DOMAIN.split('-00-')[0]}-00-${REPLIT_DEV_DOMAIN.split('-00-')[1]}:${backendPort}`
+  : `http://localhost:${backendPort}`
+
+export const API_BASE_URL = import.meta.env?.VITE_API_URL || backendURL
 
 export const api = axios.create({
   baseURL: API_BASE_URL,

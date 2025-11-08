@@ -20,12 +20,13 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    origin: true,
     methods: ["GET", "POST"]
   }
 });
 
 const PORT = process.env.PORT || 3001;
+const HOST = 'localhost';
 
 // Optionally autostart Python LLM service so only Node needs to be launched
 const PY_LLM_AUTOSTART = process.env.PY_LLM_AUTOSTART !== 'false';
@@ -93,7 +94,7 @@ dirs.forEach(dir => {
 
 // Middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL || "http://localhost:5173",
+  origin: true,
   credentials: true
 }));
 app.use(express.json({ limit: '50mb' }));
@@ -247,8 +248,8 @@ app.use('*', (req, res) => {
   }
 })();
 
-server.listen(PORT, () => {
-  console.log(`🚀 AI Video Editor Backend running on port ${PORT}`);
+server.listen(PORT, HOST, () => {
+  console.log(`🚀 AI Video Editor Backend running on ${HOST}:${PORT}`);
   console.log(`📁 Upload directory: ${process.env.UPLOAD_DIR || './media/uploads'}`);
   console.log(`🔧 FFmpeg path: ${process.env.FFMPEG_PATH || 'ffmpeg'}`);
 });
